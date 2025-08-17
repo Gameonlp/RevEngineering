@@ -201,3 +201,136 @@ Reasoning: got rid of IDTR checking, made thread creation trigger asap
 
 3. In some of the assembly listings, the function name has a @ prefi x followed
 by a number. Explain when and why this decoration exists.
+The @ prefix lists the location relative to the compilation unit
+
+4. Implement the following functions in x86 assembly: strlen, strchr, memcpy, memset, strcmp, strset.
+
+strlen:
+<pre>
+.globl strlen
+.type strlen, @function
+strlen:
+    push ebp
+    mov ebp, esp
+    push edi
+    mov edi, [ebp + 8]
+    xor eax, eax
+    mov ecx, -1
+    repne scasb
+    not ecx
+    dec ecx
+    mov eax, ecx
+    pop edi
+    pop ebp
+    ret
+</pre>
+
+strchr:
+<pre>
+ .globl strchr
+.type strchr, @function
+strchr:
+    push ebp
+    mov ebp, esp
+    push edi
+    mov edi, [ebp + 8]
+    xor eax, eax
+    mov ecx, -1
+    repne scasb
+    not ecx
+    dec ecx
+    mov edi, [ebp + 8]
+    mov eax, [ebp + 12]
+    repne scasb
+    je found
+    mov edi, 1
+found:
+    dec edi
+    mov eax, edi
+    pop edi
+    pop ebp
+    ret
+</pre>
+
+memcpy:
+<pre>
+ .globl memcpy
+.type memcpy, @function
+memcpy:
+    push ebp
+    mov ebp, esp
+    push esi
+    push edi
+    mov ecx, [ebp + 16]
+    mov edi, [ebp + 8]
+    mov esi, [ebp + 12]
+    rep movsb
+    pop edi
+    pop esi
+    mov eax, [ebp + 8]
+    pop ebp
+    ret
+</pre>
+
+memset:
+<pre>
+ .globl memset
+.type memset, @function
+memset:
+    push ebp
+    mov ebp, esp
+    push edi
+    mov ecx, [ebp + 16]
+    mov edi, [ebp + 8]
+    mov eax, [ebp + 12]
+    rep stosb
+    pop edi
+    mov eax, [ebp + 8]
+    pop ebp
+    ret
+</pre>
+
+strcmp:
+<pre>
+ .globl strcmp
+.type strcmp, @function
+strcmp:
+    push ebp
+    mov ebp, esp
+    push esi
+    push edi
+    mov esi, [ebp + 12]
+    mov edi, [ebp + 8]
+    mov ecx, -1
+    repe cmpsb
+    mov al, [edi - 1]
+    sub al, [esi - 1]
+    movsx eax, al
+    pop edi
+    pop esi
+    pop ebp
+    ret
+</pre>
+
+strset:
+<pre>
+ .globl strset
+.type strset, @function
+strset:
+    push ebp
+    mov ebp, esp
+    push edi
+    mov edi, [ebp + 8]
+    xor eax, eax
+    mov ecx, -1
+    repne scasb
+    not ecx
+    dec ecx
+    mov edi, [ebp + 8]
+    mov eax, [ebp + 12]
+    rep stosb
+    pop edi
+    mov eax, [ebp + 8]
+    pop ebp
+    ret
+</pre>
