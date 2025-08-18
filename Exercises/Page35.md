@@ -334,3 +334,70 @@ strset:
     pop ebp
     ret
 </pre>
+
+5. Decompile the following kernel routines in Windows:
+ ■ KeInitializeDpc
+ ■ KeInitializeApc
+ ■ ObFastDereferenceObject (and explain its calling convention)
+ ■ KeInitializeQueue
+ ■ KxWaitForLockChainValid
+ ■ KeReadyThread
+ ■ KiInitializeTSS
+ ■ RtlValidateUnicodeString
+
+KeInitializeDpc:
+<pre>
+lkd> uf KeInitializeDpc
+nt!KeInitializeDpc:
+fffff801`50d446c0 33c0            xor     eax,eax
+fffff801`50d446c2 c70113010000    mov     dword ptr [rcx],113h
+fffff801`50d446c8 48894138        mov     qword ptr [rcx+38h],rax
+fffff801`50d446cc 48894110        mov     qword ptr [rcx+10h],rax
+fffff801`50d446d0 48895118        mov     qword ptr [rcx+18h],rdx
+fffff801`50d446d4 4c894120        mov     qword ptr [rcx+20h],r8
+fffff801`50d446d8 c3              ret
+</pre>
+
+As the function does not access the stack for reading purposes, the function most likely follows "Microsoft x64 calling convention convention". So now we have to look at the function doc by microsoft to see:
+
+<pre>
+ void KeInitializeDpc(
+  [out]          __drv_aliasesMem PRKDPC Dpc,
+  [in]           PKDEFERRED_ROUTINE      DeferredRoutine,
+  [in, optional] __drv_aliasesMem PVOID  DeferredContext
+);
+</pre>
+
+As the function is only writing to the memory pointed to by rcx, we have to look what Dpc is. Now looking at the information on KDPC:
+
+<pre>
+lkd> dt _KDPC
+nt!_KDPC
+   +0x000 TargetInfoAsUlong : Uint4B
+   +0x000 Type             : UChar
+   +0x001 Importance       : UChar
+   +0x002 Number           : Uint2B
+   +0x008 DpcListEntry     : _SINGLE_LIST_ENTRY
+   +0x010 ProcessorHistory : Uint8B
+   +0x018 DeferredRoutine  : Ptr64     void 
+   +0x020 DeferredContext  : Ptr64 Void
+   +0x028 SystemArgument1  : Ptr64 Void
+   +0x030 SystemArgument2  : Ptr64 Void
+   +0x038 DpcData          : Ptr64 Void
+</pre>
+
+We can now decompile the function as follows (assuming for now that xor eax, eax zeroes all of rax):
+
+<pre>
+  void KeInitializeDpc(
+  [out]          __drv_aliasesMem PRKDPC Dpc,
+  [in]           PKDEFERRED_ROUTINE      DeferredRoutine,
+  [in, optional] __drv_aliasesMem PVOID  DeferredContext
+) {
+  Dpc.TargetInfoAsUlong = 0x113;
+  Dpc.DpcData = NULL;
+  Dpc.ProcessorHistory = 0;
+  Dpc.DeferredRoutine = DeferredRoutine;
+  Dpc.DeferredContext = DeferredContext;
+}
+</pre>
